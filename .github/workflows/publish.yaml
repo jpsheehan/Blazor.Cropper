@@ -24,4 +24,4 @@ jobs:
     - name: Publish to Nuget
       run: dotnet nuget push Blazor.Cropper/bin/Release/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
     - name: publish package to GitHub
-      run: dotnet nuget push Blazor.Cropper/bin/Release/*.nupkg --api-key ${{secrets.GITHUB_TOKEN}} --source "https://nuget.pkg.github.com/Chronostasys/index.json" --skip-duplicate
+      run: dotnet nuget push Blazor.Cropper/bin/Release/*.nupkg --api-key ${{secrets.GITHUB_TOKEN}} --source "https://nuget.pkg.github.com/Sheehan/index.json" --skip-duplicate
