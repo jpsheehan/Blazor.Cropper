@@ -239,6 +239,18 @@
             <param name="s"></param>
             <returns></returns>
         </member>
+        <member name="M:Blazor.Cropper.ImageCroppedResult.SaveAsync(System.IO.Stream,SixLabors.ImageSharp.Formats.IImageEncoder)">
+            <summary>
+            Save image to a stream with your own
+            <see cref="T:SixLabors.ImageSharp.Formats.IImageEncoder"/>.
+            This can be use to
+            set some advanced options e.g. <see cref="T:SixLabors.ImageSharp.Formats.Png.PngCompressionLevel"/> for png.
+            This method can only be used when the cropper working in pure cs mode
+            </summary>
+            <param name="s"></param>
+            <param name="encoder"></param>
+            <returns></returns>
+        </member>
         <member name="T:Blazor.Cropper.JSInterop">
             <summary>
             js interop methods

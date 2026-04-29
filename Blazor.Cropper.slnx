@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".bettercodehub.yml" />
+    <File Path=".github/workflows/cd.yaml" />
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="Blazor.Cropper/Blazor.Cropper.csproj" />
+  <Project Path="CropperSample/CropperSample.csproj" />
+</Solution>

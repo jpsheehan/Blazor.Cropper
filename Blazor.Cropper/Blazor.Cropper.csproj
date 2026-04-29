@@ -1,16 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
   <PropertyGroup>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <TargetFrameworks>net6.0;net5.0</TargetFrameworks>
+    <TargetFramework>net9.0</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <PackageLicenseExpression></PackageLicenseExpression>
     <Description>A blazor library provide a component to crop images</Description>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <PackageProjectUrl>https://github.com/Chronostasys/Blazor.Cropper</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/Chronostasys/Blazor.Cropper</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/jpsheehan/Blazor.Cropper</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/jpsheehan/Blazor.Cropper</RepositoryUrl>
     <PackageTags>Blazor,Cropper,Crop,Image</PackageTags>
-    <PackageId>Chronos.Blazor.Cropper</PackageId>
+    <PackageId>Sheehan.Blazor.Cropper</PackageId>
     <Version>1.2.16</Version>
   </PropertyGroup>
 
@@ -18,28 +17,21 @@
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>.\Blazor.Cropper\Blazor.Cropper.xml</DocumentationFile>
   </PropertyGroup>
-
-
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net6.0' ">
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="6.0.0" />
-  </ItemGroup>
-
-
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net5.0' ">
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="5.0.0" />
+  
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net9.0' ">
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="SixLabors.ImageSharp" Version="2.1.2" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="2.1.13" />
   </ItemGroup>
-
-
+  
   <ItemGroup>
     <None Include="..\LICENSE">
       <Pack>True</Pack>
-      <PackagePath></PackagePath>
+      <PackagePath>\</PackagePath>
     </None>
-        <None Include="..\README.md">
+    <None Include="..\README.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>

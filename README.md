@@ -1,23 +1,23 @@
 # Blazor.Cropper
 
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/8184731f2b374089a64e53d24e1c09a7)](https://app.codacy.com/gh/Chronostasys/Blazor.Cropper?utm_source=github.com&utm_medium=referral&utm_content=Chronostasys/Blazor.Cropper&utm_campaign=Badge_Grade)
-![GitHub](https://img.shields.io/github/license/Chronostasys/Blazor.Cropper)
-![Nuget](https://img.shields.io/nuget/v/Chronos.Blazor.Cropper)
+A fork of [Chronostasys's Blazor.Cropper](https://github.com/Chronostasys/Blazor.Cropper) with the transitive dependencies bumped so that there aren't any known security issues.
+
+![GitHub](https://img.shields.io/github/license/jpsheehan/Blazor.Cropper)
+![Nuget](https://img.shields.io/nuget/v/Sheehan.Blazor.Cropper)
 
 A blazor library provide a component to crop image  
 ![](imgs/base.gif)=>  
 ![](imgs/1.gif) ![](imgs/2.gif) ![](imgs/3.gif)  
-
-[Sample site here](https://chronostasys.github.io/Blazor.Cropper/)  
+  
 It is:
 - almost full c#
 - fast
 - mobile compatible
-- lighweight
+- lightweight
 - support proportion
 - **GIF crop support**(only for small files)
 - support [maui(blazor)](https://github.com/dotnet/maui)
-- open source on [github](https://github.com/Chronostasys/Blazor.Cropper)  
+- open source on [github](https://github.com/jpsheehan/Blazor.Cropper)  
 
 If you find Blazor.Cropper helpful, you could **star this repo**, it's really important to me.  
 
@@ -48,7 +48,7 @@ Please note that using Blazor.Cropper on server side could consume remarkable am
 ## Quick Start
 Only 4 steps to use Blazor.Cropper
 ### Step0. Add nuget  pkg
-Install our nuget pkg at [nuget.org](https://www.nuget.org/packages/Chronos.Blazor.Cropper). 
+Install our nuget pkg at [nuget.org](https://www.nuget.org/packages/Sheehan.Blazor.Cropper). 
 Add namespace to `_import.razor`:  
 ```razor
 @using Blazor.Cropper
@@ -56,7 +56,7 @@ Add namespace to `_import.razor`:
 ### Step1. Add script referrence
 Then, you should paste following code into your index.html:  
 ```html
-<script src="_content/Chronos.Blazor.Cropper/CropHelper.js"></script>
+<script src="_content/Sheehan.Blazor.Cropper/CropHelper.js"></script>
 ```
 ### Step2. Add cropper
 Just add cropper to your code. We recommend you to use it inside a modal card.  
