@@ -5,10 +5,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="5.0.8" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="5.0.8" PrivateAssets="all" />
-    <PackageReference Include="System.Net.Http.Json" Version="5.0.0" />
-    <PackageReference Include="Sheehan.Blazor.Cropper" Version="1.2.8" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.15" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.15" PrivateAssets="all" />
+    <PackageReference Include="System.Net.Http.Json" Version="10.0.7" />
+    <PackageReference Include="Sheehan.Blazor.Cropper" Version="1.2.16" />
   </ItemGroup>
 
   <ItemGroup>
