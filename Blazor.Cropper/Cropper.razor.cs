@@ -1,16 +1,14 @@
 ﻿using System;
 using System.Globalization;
 using System.Linq;
-using System.Net.Http;
+using System.IO;
+using System.Drawing;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Formats.Png;
+using SkiaSharp;
 
 namespace Blazor.Cropper
 {
@@ -95,14 +93,9 @@ namespace Blazor.Cropper
         [Parameter]
         public EventCallback OnLoad { get; set; }
         /// <summary>
-        /// Set whether the anime gif crop is enabled. If enabled,
-        /// the gif file smaller than 1mb would 
-        /// be cropped as animed image. If disabled, only the first
-        /// frame would be cropped.
+        /// Retained for source compatibility. GIF images are cropped as static images.
         /// </summary>
-        /// <remarks>Crop large gif image can cause the window stop responding
-        /// for half a minute!</remarks>
-        /// <value>default: true</value>
+        [Obsolete("Animated GIF cropping is no longer supported. GIF inputs produce static images.")]
         [Parameter]
         public bool AnimeGifEnable { get; set; } = true;
         /// <summary>
@@ -294,8 +287,8 @@ namespace Blazor.Cropper
         internal double _unsavedCropW;
         internal double _unsavedCropH;
         internal IBrowserFile _prevFile;
-        internal IImageFormat _format;
-        internal Image _gifimage;
+        internal ImageFormat _format = ImageFormat.Png;
+        internal SKBitmap _sourceImage;
         internal double _ratio = 1d;
         internal bool _evInitialized = false;
         internal double _minvalx;
@@ -304,6 +297,7 @@ namespace Blazor.Cropper
         internal ElementReference _oriImg;
         internal ElementReference _dimg;
         internal DotNetObjectReference<Cropper> _cropperRef;
+        private readonly string _eventListenerId = Guid.NewGuid().ToString("N");
 
         #endregion
 
@@ -342,7 +336,14 @@ namespace Blazor.Cropper
         /// <inheritdoc/>
         public async ValueTask DisposeAsync()
         {
-            await JSRuntime.InvokeVoidAsync("rmCropperEventListeners");
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("rmCropperEventListeners", _eventListenerId);
+            }
+            finally
+            {
+                Dispose();
+            }
         }
 
         private void InitAspectRatio()
@@ -381,7 +382,6 @@ namespace Blazor.Cropper
             string ext = ImageFile.Name.Split('.').Last().ToLower();
             IBrowserFile resizedImageFile = ImageFile;
             await Task.Delay(10);
-            _gifimage?.Dispose();
             await LoadImage(ext, resizedImageFile);
             await InitJSAsync();
             await SetImgContainterSize();
@@ -404,7 +404,7 @@ namespace Blazor.Cropper
             };
             if (!_evInitialized)
             {
-                await JSRuntime.InvokeVoidAsync("addCropperEventListeners", _cropperRef);
+                await JSRuntime.InvokeVoidAsync("addCropperEventListeners", _cropperRef, _eventListenerId);
                 _evInitialized = true;
             }
         }
@@ -472,6 +472,8 @@ namespace Blazor.Cropper
         public void Dispose()
         {
             _cropperRef?.Dispose();
+            _sourceImage?.Dispose();
+            _sourceImage = null;
         }
         /// <summary>
         /// Get the crop result.
@@ -479,46 +481,26 @@ namespace Blazor.Cropper
         /// <returns>crop result</returns>
         public async Task<ImageCroppedResult> GetCropedResult()
         {
+            if (Quality < 0 || Quality > 100)
+                throw new ArgumentOutOfRangeException(nameof(Quality));
 
-            var info = GetCropInfo();
-            var rect = info.Rectangle;
-            var (x, y, proportionalCropWidth, proportionalCropHeight, resizeProp) = (rect.X, rect.Y, rect.Width, rect.Height, info.ResizeProp);
-            double finalImageHeight = FinalCropHeight != 0 ? FinalCropHeight : proportionalCropHeight;
-            double finalImageWidth = FinalCropWidth != 0 ? FinalCropWidth : proportionalCropWidth;
-            if (_gifimage == null)
+            var rect = GetCropInfo().Rectangle;
+            int width = FinalCropWidth != 0 ? checked((int)FinalCropWidth) : rect.Width;
+            int height = FinalCropHeight != 0 ? checked((int)FinalCropHeight) : rect.Height;
+            if (width <= 0 || height <= 0)
+                throw new InvalidOperationException("The crop dimensions must be positive.");
+
+            if (_sourceImage == null)
             {
-                if (Environment.Version.Major > 5)
-                {
-                    // for dotnet version after 5, pass byte array between c# and js is optimized
-                    // async function cropAsync(id, sx, sy, swidth, sheight, x, y, width, height, format)
-                    var bin = await JSRuntime.InvokeAsync<byte[]>("cropAsync", _oriImg,
-                        x, y, (proportionalCropWidth), (proportionalCropHeight), 0, 0,
-                        finalImageWidth, finalImageHeight, _format.DefaultMimeType, Quality);
-                    return new ImageCroppedResult(bin, _format);
-                }
-                else
-                {
-                    // async function cropAsync(id, sx, sy, swidth, sheight, x, y, width, height, format)
-                    string s = await JSRuntime.InvokeAsync<string>("cropAsync", _oriImg,
-                        x, y, (proportionalCropWidth), (proportionalCropHeight), 0, 0,
-                        finalImageWidth, finalImageHeight, _format.DefaultMimeType, Quality);
-                    return new ImageCroppedResult(s, _format);
-                }
+                var result = await JSRuntime.InvokeAsync<BrowserCropResult>("cropAsync", _oriImg,
+                    rect.X, rect.Y, rect.Width, rect.Height, 0, 0,
+                    width, height, _format.DefaultMimeType, Quality);
+                return new ImageCroppedResult(result.Data, ImageFormat.FromMimeType(result.MimeType));
             }
-            else
-            {
-                _gifimage.Mutate(ctx =>
-                {
-                    // fix exif orientaion issue
-                    ctx.AutoOrient();
-                    ctx.Crop(rect);
-                    if (resizeProp != 1d)
-                    {
-                        ctx.Resize(new Size(proportionalCropWidth, proportionalCropHeight));
-                    }
-                });
-                return new ImageCroppedResult(_gifimage, _format, Quality);
-            }
+
+            // Each result owns a new bitmap; subsequent crops always use the original.
+            var cropped = ImageProcessing.Crop(_sourceImage, rect, width, height);
+            return new ImageCroppedResult(cropped, _format, Quality);
         }
 
         /// <summary>
@@ -675,40 +657,21 @@ namespace Blazor.Cropper
 
         internal async ValueTask LoadImage(string ext, IBrowserFile resizedImageFile)
         {
-            if (PureCSharpProcessing || string.IsNullOrEmpty(InputId) || (ext == "gif" && AnimeGifEnable))
+            _sourceImage?.Dispose();
+            _sourceImage = null;
+            _format = ImageFormat.FromFileExtension(ext);
+
+            if (PureCSharpProcessing || string.IsNullOrEmpty(InputId))
             {
-                byte[] buffer = new byte[resizedImageFile.Size];
-                if (Environment.Version.Major >= 6)
-                {
-                    var isClientSide = JSRuntime is IJSInProcessRuntime;
-                    if (isClientSide)
-                    {
-                        await resizedImageFile.OpenReadStream(1024 * 1024 * 90).ReadAsync(buffer);
-                    }
-                    else
-                    {
-                        // WORKAROUND https://github.com/Chronostasys/Blazor.Cropper/issues/43
-                        var fileContent = new StreamContent(resizedImageFile.OpenReadStream(1024 * 1024 * 90));
-                        buffer = await fileContent.ReadAsByteArrayAsync();
-                    }
-                }
-                else
-                {
-                    await resizedImageFile.OpenReadStream(1024 * 1024 * 90).ReadAsync(buffer);
-                }
-                if ((ext == "gif" && AnimeGifEnable) || PureCSharpProcessing)
-                {
-                    _gifimage = Image.Load(buffer, out _format);
-                    await JSRuntime.InvokeVoidAsync("setImgSrc", buffer, _format.DefaultMimeType, _cropperElmRef, _dimg, _oriImg);
-                }
-                else
-                {
+                using var input = resizedImageFile.OpenReadStream(1024 * 1024 * 90);
+                using var content = new MemoryStream();
+                await input.CopyToAsync(content);
+                var buffer = content.ToArray();
+                if (PureCSharpProcessing)
+                    _sourceImage = ImageProcessing.Decode(buffer, out _format);
 
-                    var m = Configuration.Default.ImageFormatsManager;
-
-                    _format = m.FindFormatByFileExtension(ext) ?? PngFormat.Instance;
-                    await JSRuntime.InvokeVoidAsync("setImgSrc", buffer, "image/" + ext, _cropperElmRef, _dimg, _oriImg);
-                }
+                await JSRuntime.InvokeVoidAsync("setImgSrc", buffer, resizedImageFile.ContentType,
+                    _cropperElmRef, _dimg, _oriImg);
             }
             else
             {

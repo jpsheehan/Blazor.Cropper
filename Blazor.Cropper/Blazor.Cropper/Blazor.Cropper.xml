@@ -105,14 +105,8 @@
         </member>
         <member name="P:Blazor.Cropper.Cropper.AnimeGifEnable">
             <summary>
-            Set whether the anime gif crop is enabled. If enabled,
-            the gif file smaller than 1mb would 
-            be cropped as animed image. If disabled, only the first
-            frame would be cropped.
+            Retained for source compatibility. GIF images are cropped as static images.
             </summary>
-            <remarks>Crop large gif image can cause the window stop responding
-            for half a minute!</remarks>
-            <value>default: true</value>
         </member>
         <member name="P:Blazor.Cropper.Cropper.InputId">
             <summary>
@@ -225,31 +219,23 @@
             </summary>
             <returns></returns>
         </member>
+        <member name="P:Blazor.Cropper.ImageCroppedResult.Img">
+            <summary>The cropped bitmap in pure C# mode. The result owns this bitmap.</summary>
+        </member>
         <member name="M:Blazor.Cropper.ImageCroppedResult.GetDataAsync">
-            <summary>
-            get image bytes
-            </summary>
-            <returns>image bytes</returns>
-            <exception cref="T:System.InvalidOperationException"></exception>
+            <summary>Get the encoded image bytes.</summary>
         </member>
         <member name="M:Blazor.Cropper.ImageCroppedResult.SaveAsync(System.IO.Stream)">
-            <summary>
-            save img data to stream
-            </summary>
-            <param name="s"></param>
-            <returns></returns>
+            <summary>Save the encoded image to a stream.</summary>
         </member>
-        <member name="M:Blazor.Cropper.ImageCroppedResult.SaveAsync(System.IO.Stream,SixLabors.ImageSharp.Formats.IImageEncoder)">
+        <member name="M:Blazor.Cropper.ImageCroppedResult.SaveAsync(System.IO.Stream,SkiaSharp.SKEncodedImageFormat,System.Int32)">
             <summary>
-            Save image to a stream with your own
-            <see cref="T:SixLabors.ImageSharp.Formats.IImageEncoder"/>.
-            This can be use to
-            set some advanced options e.g. <see cref="T:SixLabors.ImageSharp.Formats.Png.PngCompressionLevel"/> for png.
-            This method can only be used when the cropper working in pure cs mode
+            Encode the cropped bitmap with a specified Skia format and quality.
+            This method requires pure C# processing and supports PNG, JPEG and WebP.
             </summary>
-            <param name="s"></param>
-            <param name="encoder"></param>
-            <returns></returns>
+        </member>
+        <member name="T:Blazor.Cropper.ImageFormat">
+            <summary>Describes the format used to encode a cropped image.</summary>
         </member>
         <member name="T:Blazor.Cropper.JSInterop">
             <summary>

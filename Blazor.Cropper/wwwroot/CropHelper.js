@@ -2,13 +2,13 @@
 
 const onMousemove = (ev, dotNetHelper) => {
     try {
-        dotNetHelper.invokeMethodAsync('OnMouseMove', serializeEvent(ev));
+        dotNetHelper.invokeMethodAsync('OnMouseMove', serializeEvent(ev)).catch(() => {});
     } catch (error) {
     }
 }
 const onMouseup = (ev, dotNetHelper) => {
     try {
-        dotNetHelper.invokeMethodAsync('OnMouseUp');
+        dotNetHelper.invokeMethodAsync('OnMouseUp').catch(() => {});
     } catch (error) {
     }
 }
@@ -17,37 +17,46 @@ const onTouchmove = (ev, dotNetHelper) => {
         dotNetHelper.invokeMethodAsync('OnTouchMove', {
             clientX: ev.touches[0].clientX,
             clientY: ev.touches[0].clientY
-        });
+        }).catch(() => {});
     } catch (error) {
 
     }
 }
 const onTouchend = (ev, dotNetHelper) => {
     try {
-        dotNetHelper.invokeMethodAsync('OnTouchEnd');
+        dotNetHelper.invokeMethodAsync('OnTouchEnd').catch(() => {});
     } catch (error) {
 
     }
 }
 const onResize = (ev, dotNetHelper) => {
     try {
-        dotNetHelper.invokeMethodAsync('SetWidthHeight');
+        dotNetHelper.invokeMethodAsync('SetWidthHeight').catch(() => {});
     } catch (error) {
     }
 }
-function addCropperEventListeners(dotNetHelper) {
-    document.addEventListener('mousemove', (ev) => onMousemove(ev, dotNetHelper))
-    document.addEventListener('mouseup', (ev) => onMouseup(ev, dotNetHelper))
-    document.addEventListener('touchmove', (ev) => onTouchmove(ev, dotNetHelper))
-    document.addEventListener('touchend', (ev) => onTouchend(ev, dotNetHelper))
-    window.addEventListener('resize', (ev) => onResize(ev, dotNetHelper))
+const cropperEventListeners = new Map();
+function addCropperEventListeners(dotNetHelper, id) {
+    if (cropperEventListeners.has(id)) return;
+    const listeners = [
+        [document, 'mousemove', ev => onMousemove(ev, dotNetHelper)],
+        [document, 'mouseup', ev => onMouseup(ev, dotNetHelper)],
+        [document, 'touchmove', ev => onTouchmove(ev, dotNetHelper)],
+        [document, 'touchend', ev => onTouchend(ev, dotNetHelper)],
+        [window, 'resize', ev => onResize(ev, dotNetHelper)]
+    ];
+    for (const [target, type, listener] of listeners) {
+        target.addEventListener(type, listener);
+    }
+    cropperEventListeners.set(id, listeners);
 }
-function rmCropperEventListeners() {
-    // document.removeEventListener('mousemove', onMousemove)
-    // document.removeEventListener('mouseup', onMouseup)
-    // document.removeEventListener('touchmove', onTouchmove)
-    // document.removeEventListener('touchend', onTouchend)
-    // window.removeEventListener('resize', onResize)
+function rmCropperEventListeners(id) {
+    const listeners = cropperEventListeners.get(id);
+    if (!listeners) return;
+    for (const [target, type, listener] of listeners) {
+        target.removeEventListener(type, listener);
+    }
+    cropperEventListeners.delete(id);
 }
 
 
@@ -73,18 +82,16 @@ async function cropAsync(img, sx, sy, swidth, sheight, x, y, width, height, form
     canvas.height = height;
     const ctx = canvas.getContext('2d')
     ctx.drawImage(img, sx, sy, swidth, sheight, x, y, width, height);
-    if (version === 6) {
-        return await new Promise((rs, rv) => {
-            canvas.toBlob(async b => {
-                const bin = new Uint8Array(await new Response(b).arrayBuffer());
-                rs(bin)
-            }, format, quality / 100);
-        })
-    }
-    else {
-        const s = canvas.toDataURL(format, quality / 100);
-        return s.substr(s.indexOf(',') + 1)
-    }
+    const blob = await new Promise((resolve, reject) => {
+        canvas.toBlob(b => {
+            if (b) resolve(b);
+            else reject(new Error('The cropped image could not be encoded.'));
+        }, format, quality / 100);
+    });
+    return {
+        data: new Uint8Array(await blob.arrayBuffer()),
+        mimeType: blob.type
+    };
 }
 function setImg(id, cropper, dimg, oriimg) {
     var e = cropper;

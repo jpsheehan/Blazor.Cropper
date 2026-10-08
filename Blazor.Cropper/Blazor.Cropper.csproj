@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
   <PropertyGroup>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <Description>A blazor library provide a component to crop images</Description>
@@ -10,7 +10,8 @@
     <RepositoryUrl>https://github.com/jpsheehan/Blazor.Cropper</RepositoryUrl>
     <PackageTags>Blazor,Cropper,Crop,Image</PackageTags>
     <PackageId>Sheehan.Blazor.Cropper</PackageId>
-    <Version>1.2.16</Version>
+    <Version>1.3.0</Version>
+    <PackageReleaseNotes>Use SkiaSharp instead of SixLabors.ImageSharp.</PackageReleaseNotes>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -18,14 +19,20 @@
     <DocumentationFile>.\Blazor.Cropper\Blazor.Cropper.xml</DocumentationFile>
   </PropertyGroup>
   
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net9.0' ">
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.0" />
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.12" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="SixLabors.ImageSharp" Version="2.1.13" />
+    <PackageReference Include="SkiaSharp" Version="4.153.1" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.153.1" />
+    <PackageReference Include="SkiaSharp.NativeAssets.WebAssembly" Version="4.153.1" />
   </ItemGroup>
   
+  <ItemGroup>
+    <InternalsVisibleTo Include="Blazor.Cropper.Tests" />
+  </ItemGroup>
+
   <ItemGroup>
     <None Include="..\LICENSE">
       <Pack>True</Pack>

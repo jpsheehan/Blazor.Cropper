@@ -5,23 +5,32 @@ on:
       - master
 jobs:
   publish:
-    name: build, pack & publish
+    name: build, test, pack & publish
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     steps:
     - name: Check out Repo
-      uses: actions/checkout@v2
+      uses: actions/checkout@v7
 
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v6
       with:
-        dotnet-version: 9.0.x
+        dotnet-version: 10.0.x
+    - name: Setup Node.js
+      uses: actions/setup-node@v7
+      with:
+        node-version: '24'
+        package-manager-cache: false
     - name: Restore dependencies
-      run: dotnet restore Blazor.Cropper/Blazor.Cropper.csproj
+      run: dotnet restore Blazor.Cropper.Tests/Blazor.Cropper.Tests.csproj
     - name: Build project
       run: dotnet build Blazor.Cropper/Blazor.Cropper.csproj --no-restore --configuration Release
+    - name: Run C# tests
+      run: dotnet test Blazor.Cropper.Tests/Blazor.Cropper.Tests.csproj --no-restore --configuration Release
+    - name: Run JavaScript tests
+      run: node --test Blazor.Cropper.Tests/CropHelper.test.cjs
     - name: Publish to Nuget
       run: dotnet nuget push Blazor.Cropper/bin/Release/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
     - name: publish package to GitHub

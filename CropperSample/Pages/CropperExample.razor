@@ -32,7 +32,6 @@
                          OffsetY="11"
                          InitCropWidth="50"
                          InitCropHeight="50"
-                         AnimeGifEnable="true"
                          PureCSharpProcessing="purecs"
                          IsCropLocked="isCropLocked"
                          IsImageLocked="isImageLocked"
@@ -107,14 +106,14 @@ Pure c# processiing:
     }
     async Task DoneCrop()
     {
-        var args = await cropper.GetCropedResult();
+        using var args = await cropper.GetCropedResult();
         file = null;
         parsing = true;
         base.StateHasChanged();
         await Task.Delay(10);// a hack, otherwise prompt won't show
         await JSRuntime.InvokeVoidAsync("console.log", "converted!");
-        var base64string = await args.GetBase64Async();
-        imgUrl = $"data:image/png;base64,{base64string}";
+        var base64string = Convert.ToBase64String(await args.GetDataAsync());
+        imgUrl = $"data:{args.Format.DefaultMimeType};base64,{base64string}";
         parsing = false;
     }
 

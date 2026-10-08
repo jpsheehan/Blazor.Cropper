@@ -1,146 +1,107 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Formats.Bmp;
-using SixLabors.ImageSharp.Formats.Gif;
-using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.Formats.Tiff;
-using SixLabors.ImageSharp.Formats.Webp;
-using SixLabors.ImageSharp.Formats.Tga;
-using SixLabors.ImageSharp.Formats.Pbm;
+using SkiaSharp;
 
 namespace Blazor.Cropper
 {
+    internal sealed class BrowserCropResult
+    {
+        public byte[] Data { get; set; }
+        public string MimeType { get; set; }
+    }
+
     public class ImageCroppedResult : IDisposable
     {
         private readonly string _base64;
         private byte[] _data;
-        public Image Img { get; init; }
-        public IImageFormat Format { get; init; }
+        private bool _disposed;
+
+        /// <summary>The cropped bitmap in pure C# mode. The result owns this bitmap.</summary>
+        public SKBitmap Img { get; init; }
+        public ImageFormat Format { get; init; }
         public int Quality { get; init; }
-        public ImageCroppedResult(Image img, IImageFormat format, int quality)
+
+        public ImageCroppedResult(SKBitmap img, ImageFormat format, int quality)
         {
+            ArgumentNullException.ThrowIfNull(img);
+            ArgumentNullException.ThrowIfNull(format);
+            if (quality < 0 || quality > 100)
+                throw new ArgumentOutOfRangeException(nameof(quality));
             Img = img;
             Format = format;
             Quality = quality;
         }
-        public ImageCroppedResult(string base64, IImageFormat format)
+
+        public ImageCroppedResult(string base64, ImageFormat format)
         {
+            ArgumentNullException.ThrowIfNull(base64);
+            ArgumentNullException.ThrowIfNull(format);
             _base64 = base64;
             Format = format;
         }
 
-        public ImageCroppedResult(byte[] bytes, IImageFormat format)
+        public ImageCroppedResult(byte[] bytes, ImageFormat format)
         {
+            ArgumentNullException.ThrowIfNull(bytes);
+            ArgumentNullException.ThrowIfNull(format);
             _data = bytes;
             Format = format;
         }
-#if NET6_0_OR_GREATER
-        [Obsolete("this api is obsolete in dotnet 6 for bad performance")]
-#endif
+
+        [Obsolete("Use GetDataAsync to avoid base64 conversion overhead.")]
         public async Task<string> GetBase64Async()
         {
-            if (_base64!=null)
-            {
-                return _base64;
-            }
-            return Convert.ToBase64String(await GetDataAsync());
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            return _base64 ?? Convert.ToBase64String(await GetDataAsync());
         }
+
+        /// <summary>Get the encoded image bytes.</summary>
+        public Task<byte[]> GetDataAsync()
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            _data ??= _base64 != null
+                ? Convert.FromBase64String(_base64)
+                : Encode(Format.EncodedFormat, Quality);
+            return Task.FromResult(_data);
+        }
+
+        /// <summary>Save the encoded image to a stream.</summary>
+        public async Task SaveAsync(Stream s)
+        {
+            ArgumentNullException.ThrowIfNull(s);
+            await s.WriteAsync(await GetDataAsync());
+        }
+
         /// <summary>
-        /// get image bytes
+        /// Encode the cropped bitmap with a specified Skia format and quality.
+        /// This method requires pure C# processing and supports PNG, JPEG and WebP.
         /// </summary>
-        /// <returns>image bytes</returns>
-        /// <exception cref="InvalidOperationException"></exception>
-        public async Task<byte[]> GetDataAsync()
+        public async Task SaveAsync(Stream s, SKEncodedImageFormat format, int quality = 100)
         {
-            if (_data!=null)
-            {
-                return _data;
-            }
-            if (_base64!=null)
-            {
-                _data = Convert.FromBase64String(_base64);
-                return _data;
-            }
-            if (Img!=null)
-            {
-                using MemoryStream memoryStream = new MemoryStream();
-                var encoder = GetImageEncoder(Format, Quality);
-                await Img.SaveAsync(memoryStream, encoder);
-
-                _data = memoryStream.ToArray();
-                return _data;
-            }
-            throw new InvalidOperationException();
-        }
-        /// <summary>
-        /// save img data to stream
-        /// </summary>
-        /// <param name="s"></param>
-        /// <returns></returns>
-        public Task SaveAsync(Stream s)
-        {
-            if (Img != null)
-            {
-
-                var encoder = GetImageEncoder(Format, Quality);
-                return Img.SaveAsync(s, encoder);
-            }
-            if (_data!=null)
-            {
-                return s.WriteAsync(_data).AsTask();
-            }
-            if (_base64!=null)
-            {
-                _data = Convert.FromBase64String(_base64);
-                return s.WriteAsync(_data).AsTask();
-            }
-            throw new InvalidOperationException();
-        }
-
-        private IImageEncoder GetImageEncoder(IImageFormat format, int quality)
-        {
-            var encoder = Configuration.Default.ImageFormatsManager.FindEncoder(Format);
-            switch (encoder)
-            {
-                case JpegEncoder e:
-                    e.Quality = Quality;
-                    break;
-                case WebpEncoder e:
-                    e.Quality = Quality;
-                    break;
-                default:
-                    break;
-            }
-            return encoder;
-        }
-
-#if NET6_0_OR_GREATER
-        /// <summary>
-        /// Save image to a stream with your own
-        /// <see cref="IImageEncoder"/>.
-        /// This can be use to
-        /// set some advanced options e.g. <see cref="PngCompressionLevel"/> for png.
-        /// This method can only be used when the cropper working in pure cs mode
-        /// </summary>
-        /// <param name="s"></param>
-        /// <param name="encoder"></param>
-        /// <returns></returns>
-        public Task SaveAsync(Stream s, IImageEncoder encoder)
-        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            ArgumentNullException.ThrowIfNull(s);
             if (Img == null)
-            {
-                throw new InvalidOperationException("This method can only be used when the cropper working in pure cs mode");
-            }
-            return Img.SaveAsync(s, encoder);
+                throw new InvalidOperationException("This method requires pure C# processing.");
+            await s.WriteAsync(Encode(format, quality));
         }
-#endif
+
+        private byte[] Encode(SKEncodedImageFormat format, int quality)
+        {
+            if (quality < 0 || quality > 100)
+                throw new ArgumentOutOfRangeException(nameof(quality));
+            if (format != SKEncodedImageFormat.Png && format != SKEncodedImageFormat.Jpeg && format != SKEncodedImageFormat.Webp)
+                throw new NotSupportedException("Cropped images can be encoded as PNG, JPEG or WebP.");
+            using var image = SKImage.FromBitmap(Img);
+            using var data = image.Encode(format, quality);
+            return data?.ToArray() ?? throw new InvalidOperationException("The cropped image could not be encoded.");
+        }
 
         public void Dispose()
         {
+            if (_disposed)
+                return;
+            _disposed = true;
             Img?.Dispose();
         }
     }

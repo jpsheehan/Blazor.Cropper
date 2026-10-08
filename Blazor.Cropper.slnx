@@ -4,6 +4,7 @@
     <File Path=".github/workflows/cd.yaml" />
     <File Path="README.md" />
   </Folder>
+  <Project Path="Blazor.Cropper.Tests/Blazor.Cropper.Tests.csproj" />
   <Project Path="Blazor.Cropper/Blazor.Cropper.csproj" />
   <Project Path="CropperSample/CropperSample.csproj" />
 </Solution>

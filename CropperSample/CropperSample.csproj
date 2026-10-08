@@ -1,17 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
+    <WasmBuildNative>true</WasmBuildNative>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.15" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.15" PrivateAssets="all" />
-    <PackageReference Include="System.Net.Http.Json" Version="10.0.7" />
-    <PackageReference Include="Sheehan.Blazor.Cropper" Version="1.2.16" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.12" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.12" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="Sheehan.Blazor.Cropper" />
+    <ProjectReference Include="..\Blazor.Cropper\Blazor.Cropper.csproj" />
   </ItemGroup>
 </Project>

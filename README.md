@@ -1,6 +1,6 @@
 # Blazor.Cropper
 
-A fork of [Chronostasys's Blazor.Cropper](https://github.com/Chronostasys/Blazor.Cropper) with the transitive dependencies bumped so that there aren't any known security issues.
+A fork of [Chronostasys's Blazor.Cropper](https://github.com/Chronostasys/Blazor.Cropper) using [SkiaSharp](https://github.com/mono/SkiaSharp) (MIT licensed) for image processing.
 
 ![GitHub](https://img.shields.io/github/license/jpsheehan/Blazor.Cropper)
 ![Nuget](https://img.shields.io/nuget/v/Sheehan.Blazor.Cropper)
@@ -15,7 +15,7 @@ It is:
 - mobile compatible
 - lightweight
 - support proportion
-- **GIF crop support**(only for small files)
+- PNG, JPEG and WebP output
 - support [maui(blazor)](https://github.com/dotnet/maui)
 - open source on [github](https://github.com/jpsheehan/Blazor.Cropper)  
 
@@ -37,12 +37,35 @@ performance in .Net 6.
 In dotnet 5, using `ImageCroppedResult.GetBase64Async();` to get the base64 result is fine. 
 In dotnet 6, it should be replaced with `ImageCroppedResult.GetDataAsync();`, which may combined 
 with new `SetImageAsync(this IJSRuntime js,byte[] bin,string imgid)` api to display the crop result.  
-You may find dotnet 6 sample [here](CropperSampleV6)
+You may find the current sample [here](CropperSample).
 
 ## Server-side Usage
 Blazor.Cropper is designed to be a client side library. However, [it can be used on server side blazor when setting `PureCSharpProcessing="true"`](https://github.com/Chronostasys/Blazor.Cropper/issues/30).  
 Please note that using Blazor.Cropper on server side could consume remarkable amount of server resources(including bandwidth, cpu and memory).  
 [Sample project](https://github.com/Chronostasys/ServerSideCropperExample)  
+
+## Image processing and migration
+
+ImageSharp has been replaced with SkiaSharp. Browser canvas processing remains the default; set `PureCSharpProcessing="true"` to use SkiaSharp.
+
+- `CropInfo.Rectangle` now uses `System.Drawing.Rectangle` from the cross-platform primitives library; this does not require `System.Drawing.Common`.
+- `ImageCroppedResult.Img` is now a `SkiaSharp.SKBitmap`. Each result owns its bitmap, so dispose the result after use.
+- `ImageCroppedResult.Format` now uses `Blazor.Cropper.ImageFormat`, with `Png`, `Jpeg` and `Webp` instances. `Format.DefaultMimeType` and `Format.Name` remain available.
+- Replace `SaveAsync(stream, imageSharpEncoder)` with `SaveAsync(stream, SKEncodedImageFormat.Png)` or another supported format. An optional third argument controls JPEG/WebP quality from 0 to 100.
+- JPEG and WebP retain their input format. Other supported inputs are saved as PNG. Animated GIF output is no longer supported; GIF inputs produce static crops. `AnimeGifEnable` is obsolete and has no effect.
+- SkiaSharp's decoder supports common formats including PNG, JPEG, WebP, BMP and GIF. ImageSharp-only formats such as TIFF, TGA and PBM are no longer supported in pure C# mode.
+
+Windows, macOS, Linux and WebAssembly native assets are included through the package dependencies. Blazor WebAssembly applications using pure C# processing must set `<WasmBuildNative>true</WasmBuildNative>` in their project and install the WebAssembly build tools to link SkiaSharp's native library:
+
+```sh
+dotnet workload install wasm-tools
+```
+
+The library, sample, and tests target .NET 10. Build the sample with the .NET 10 SDK and its `wasm-tools` workload. Applications that only use browser canvas processing can set `<ShouldIncludeNativeSkiaSharp>false</ShouldIncludeNativeSkiaSharp>` in their project to skip native linking.
+
+For MAUI, add the matching `SkiaSharp.NativeAssets.Android`, `SkiaSharp.NativeAssets.iOS` or `SkiaSharp.NativeAssets.MacCatalyst` package to the host application as needed.
+
+Run the regression checks with `dotnet test Blazor.Cropper.Tests/Blazor.Cropper.Tests.csproj` and `node --test Blazor.Cropper.Tests/CropHelper.test.cjs`.
 
 
 ## Quick Start
@@ -74,7 +97,7 @@ Example:
     }
 @* .... some code ...*@
 @* Example below shows how to bind Cropper with an InputFile component using InputId.
-    Please note that you must set ImageFile property inorder to use gif crop or PureCSharpProcessing function.
+    Please note that you must set ImageFile to use PureCSharpProcessing.
     <InputFile id="input1"></InputFile>
     <Cropper InputId="input1" ></Cropper>
 *@
@@ -113,7 +136,7 @@ Example:
 
 ## Api referrence
 We have detailed xml comments on Cropper's properties & methods, simply read it while use it!  
-On the other hand, you can go to [the sample project](CropperSampleV6) for usage examples.  
+On the other hand, you can go to [the sample project](CropperSample) for usage examples.
 To build it, simply clone it and run it in visual studio. The running result should be like this:  
 ![](2020-09-26-12-29-30.png)  
 
